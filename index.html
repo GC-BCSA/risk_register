@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risk Register</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Code+Pro:wght@400;600&display=swap');
+:root{--bg:#f4f5f7;--surface:#fff;--surface2:#eaecf0;--border:#c8ccd4;--text:#000;--text-dim:#4b5563;--text-head1:#1A204C;--text-head2:#21409A;--accent:#21409A;--accent-hover:#1A204C;--danger:#c0392b;--success:#1a7a4a;--header-bg:#1A204C;--font-body:Arial,'Inter',sans-serif;--font-mono:'Source Code Pro','Courier New',monospace;}
+[data-theme="dark"]{--bg:#0d1020;--surface:#141829;--surface2:#1c2238;--border:#2a3154;--text:#e8eaf0;--text-dim:#8892b0;--text-head1:#a8b4e8;--text-head2:#6b8de0;--accent:#4a72d4;--header-bg:#0d1020;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:var(--header-bg);border-bottom:1px solid var(--border);flex-shrink:0;gap:12px;}
+.logo{font-family:var(--font-mono);font-size:15px;font-weight:700;letter-spacing:.12em;color:#fff;white-space:nowrap;}
+.logo span{color:rgba(255,255,255,.55);font-weight:400;}
+.hbtn{height:32px;padding:0 14px;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;border-radius:5px;cursor:pointer;display:inline-flex;align-items:center;white-space:nowrap;transition:all .15s;}
+.hbtn.ghost{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;}
+.hbtn.ghost:hover{background:rgba(255,255,255,.25);}
+.hbtn.primary{background:var(--accent);border:1px solid var(--accent);color:#fff;}
+.hbtn.primary:hover{background:var(--accent-hover);}
+.hbtn.green{border:1px solid #34d399;color:#34d399;background:rgba(52,211,153,.1);}
+.hbtn.green:hover{background:#34d399;color:#000;}
+.hbtn.toggle{width:32px;padding:0;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;font-size:15px;}
+.main{display:flex;flex:1;min-height:0;overflow:hidden;}
+.sidebar{width:300px;min-width:300px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-body{flex:1;overflow-y:auto;padding:12px;}
+.sidebar-body::-webkit-scrollbar{width:5px;}
+.sidebar-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.sidebar-footer{padding:10px;border-top:1px solid var(--border);display:flex;gap:6px;}
+.label{font-family:var(--font-mono);font-size:10px;color:var(--text-head2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;}
+textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--font-mono);font-size:11px;padding:7px 8px;resize:vertical;outline:none;line-height:1.7;}
+textarea:focus{border-color:var(--accent);}
+.sbtn{height:32px;padding:0 12px;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;border-radius:5px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;border:1px solid var(--border);background:var(--surface2);color:var(--text);}
+.sbtn:hover{background:var(--accent);border-color:var(--accent);color:#fff;}
+.sbtn.primary{background:var(--accent);border-color:var(--accent);color:#fff;flex:1;}
+.sbtn.primary:hover{background:var(--accent-hover);}
+.content-area{flex:1;overflow:auto;padding:20px;background:var(--bg);display:flex;flex-direction:column;gap:20px;}
+.content-area::-webkit-scrollbar{width:6px;height:6px;}
+.content-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.err-msg{background:rgba(192,57,43,.15);border:1px solid var(--danger);border-radius:5px;padding:8px 10px;font-family:var(--font-mono);font-size:11px;color:var(--danger);margin-top:8px;display:none;}
+.info-note{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);line-height:1.6;padding:8px 0;border-top:1px solid var(--border);margin-top:8px;}
+.opt-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
+select{background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--font-mono);font-size:11px;height:28px;padding:0 8px;outline:none;cursor:pointer;flex:1;}
+/* heat map */
+.heatmap-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.heatmap-title{font-family:var(--font-mono);font-size:10px;color:var(--text-head2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+/* register table */
+.risk-table{border-collapse:collapse;width:100%;font-family:var(--font-mono);font-size:11px;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.risk-table th{background:var(--header-bg);color:#fff;padding:9px 12px;text-align:left;font-size:10px;letter-spacing:.06em;white-space:nowrap;}
+.risk-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.risk-table tr:last-child td{border-bottom:none;}
+.risk-table tr:hover td{background:var(--surface2);}
+.score-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-weight:700;font-size:11px;font-family:var(--font-mono);}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--font-mono);letter-spacing:.04em;}
+.tooltip{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:8px 12px;font-size:12px;pointer-events:none;z-index:200;display:none;font-family:var(--font-mono);box-shadow:0 4px 12px rgba(0,0,0,.3);max-width:260px;white-space:normal;line-height:1.5;}
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="logo">RISK<span>REGISTER</span></div>
+    <button class="hbtn toggle" onclick="toggleTheme()" id="themeBtn">◑</button>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="hbtn primary" onclick="renderAll()">RENDER</button>
+    <button class="hbtn green" onclick="exportCSVOut()">EXPORT CSV</button>
+  </div>
+</header>
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-body">
+      <div class="label">CSV DATA</div>
+      <textarea id="csvInput" rows="16" placeholder="id,risk,category,probability,impact,owner,mitigation,status
+R01,Key developer leaves,People,3,4,HR,Succession plan + docs,Open
+R02,Budget overrun,Financial,2,5,Finance,Monthly variance tracking,Mitigated
+R03,Vendor delivery delay,Supply Chain,4,3,Procurement,Dual-source key components,Open
+R04,Data breach,Security,2,5,CISO,SOC2 audit + pen test,In Progress
+R05,Scope creep,Project,4,4,PM,Change control process,Open
+R06,Regulatory change,Compliance,2,4,Legal,Quarterly reg monitoring,Open
+R07,System downtime,Technology,3,3,IT,HA architecture + SLAs,Mitigated
+R08,Key client churn,Commercial,2,5,Sales,QBR + exec sponsorship,Open"></textarea>
+      <div class="err-msg" id="errMsg"></div>
+      <div class="info-note">
+        probability and impact: 1–5 scale.<br>
+        Risk Score = probability × impact (1–25).<br>
+        status: Open | In Progress | Mitigated | Closed
+      </div>
+      <div style="margin-top:12px;">
+        <div class="label">SORT BY</div>
+        <div class="opt-row">
+          <select id="sortBy">
+            <option value="score">Risk Score (desc)</option>
+            <option value="prob">Probability (desc)</option>
+            <option value="impact">Impact (desc)</option>
+            <option value="id">ID</option>
+            <option value="status">Status</option>
+          </select>
+        </div>
+        <div class="label">FILTER STATUS</div>
+        <div class="opt-row">
+          <select id="filterStatus">
+            <option value="all">All</option>
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Mitigated">Mitigated</option>
+            <option value="Closed">Closed</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="sbtn primary" onclick="renderAll()">RENDER</button>
+      <button class="sbtn" onclick="downloadTemplate()">CSV TEMPLATE</button>
+    </div>
+  </div>
+  <div class="content-area" id="contentArea">
+    <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-dim);padding:40px;text-align:center;">paste data → click RENDER</div>
+  </div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+<script>
+const TEMPLATE=`id,risk,category,probability,impact,owner,mitigation,status
+R01,Key developer leaves,People,3,4,HR,Succession plan + docs,Open
+R02,Budget overrun,Financial,2,5,Finance,Monthly variance tracking,Mitigated
+R03,Vendor delivery delay,Supply Chain,4,3,Procurement,Dual-source key components,Open
+R04,Data breach,Security,2,5,CISO,SOC2 audit + pen test,In Progress
+R05,Scope creep,Project,4,4,PM,Change control process,Open
+R06,Regulatory change,Compliance,2,4,Legal,Quarterly reg monitoring,Open
+R07,System downtime,Technology,3,3,IT,HA architecture + SLAs,Mitigated
+R08,Key client churn,Commercial,2,5,Sales,QBR + exec sponsorship,Open`;
+
+function downloadTemplate(){ const b=new Blob([TEMPLATE],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='risk_register_template.csv'; a.click(); }
+
+function parseCSV(text){
+  const lines=text.trim().split('\n').filter(l=>l.trim()&&!l.startsWith('#'));
+  if(!lines.length) throw new Error('No data');
+  const hdr=lines[0].split(',').map(h=>h.trim().toLowerCase());
+  const get=k=>hdr.indexOf(k);
+  const ii=get('id'),ri=get('risk'),ci=get('category'),pi=get('probability'),imi=get('impact'),oi=get('owner'),mi=get('mitigation'),si=get('status');
+  if(ri<0||pi<0||imi<0) throw new Error('CSV must have: risk, probability, impact');
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    // handle commas inside quoted fields minimally
+    const c=lines[i].split(',').map(x=>x.trim());
+    const prob=parseFloat(c[pi])||1, impact=parseFloat(c[imi])||1;
+    rows.push({ id:ii>=0?c[ii]:`R${i}`, risk:ri>=0?c[ri]:'', category:ci>=0?c[ci]:'', probability:Math.min(5,Math.max(1,prob)), impact:Math.min(5,Math.max(1,impact)), owner:oi>=0?c[oi]:'', mitigation:mi>=0?c[mi]:'', status:si>=0?c[si]:'Open', score:Math.round(prob*impact) });
+  }
+  return rows;
+}
+
+function riskColor(score){
+  if(score>=15) return {bg:'rgba(192,57,43,.18)',text:'#c0392b',label:'CRITICAL'};
+  if(score>=10) return {bg:'rgba(231,114,34,.18)',text:'#E37222',label:'HIGH'};
+  if(score>=6)  return {bg:'rgba(254,203,0,.18)',text:'#b38600',label:'MEDIUM'};
+  return {bg:'rgba(26,122,74,.18)',text:'#1a7a4a',label:'LOW'};
+}
+
+function statusColor(s){
+  const m={'Open':'#c0392b','In Progress':'#E37222','Mitigated':'#1a7a4a','Closed':'#5A6A71'};
+  return m[s]||'#5A6A71';
+}
+
+function renderAll(){
+  const errEl=document.getElementById('errMsg'); errEl.style.display='none';
+  try{
+    let rows=parseCSV(document.getElementById('csvInput').value);
+    const sortBy=document.getElementById('sortBy').value;
+    const filterStatus=document.getElementById('filterStatus').value;
+    if(filterStatus!=='all') rows=rows.filter(r=>r.status===filterStatus);
+    if(sortBy==='score') rows.sort((a,b)=>b.score-a.score);
+    else if(sortBy==='prob') rows.sort((a,b)=>b.probability-a.probability);
+    else if(sortBy==='impact') rows.sort((a,b)=>b.impact-a.impact);
+    else if(sortBy==='id') rows.sort((a,b)=>a.id.localeCompare(b.id));
+    else if(sortBy==='status') rows.sort((a,b)=>a.status.localeCompare(b.status));
+    buildOutput(rows);
+    document.getElementById('errMsg').style.display='none';
+  }catch(e){ errEl.textContent=e.message; errEl.style.display='block'; }
+}
+
+function buildOutput(rows){
+  const ca=document.getElementById('contentArea'); ca.innerHTML='';
+
+  // Heat map
+  const hw=document.createElement('div'); hw.className='heatmap-wrap';
+  const ht=document.createElement('div'); ht.className='heatmap-title'; ht.textContent='PROBABILITY × IMPACT HEAT MAP'; hw.appendChild(ht);
+  const svgWrap=document.createElement('div');
+  hw.appendChild(svgWrap); ca.appendChild(hw);
+  drawHeatmap(rows, svgWrap);
+
+  // Register table
+  const tbl=document.createElement('table'); tbl.className='risk-table';
+  const thead=document.createElement('thead'); const tr=document.createElement('tr');
+  ['ID','RISK','CATEGORY','PROB','IMPACT','SCORE','OWNER','STATUS','MITIGATION'].forEach(h=>{ const th=document.createElement('th'); th.textContent=h; tr.appendChild(th); });
+  thead.appendChild(tr); tbl.appendChild(thead);
+
+  const tbody=document.createElement('tbody');
+  rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    const {bg,text,label}=riskColor(r.score);
+    const col=statusColor(r.status);
+    const cells=[
+      r.id, r.risk, r.category,
+      `<span style="font-weight:700">${r.probability}</span>`,
+      `<span style="font-weight:700">${r.impact}</span>`,
+      `<span class="score-badge" style="background:${bg};color:${text}">${r.score} ${label}</span>`,
+      r.owner,
+      `<span class="status-badge" style="background:${col}22;color:${col};border:1px solid ${col}44">${r.status}</span>`,
+      r.mitigation
+    ];
+    cells.forEach(c=>{ const td=document.createElement('td'); td.innerHTML=c; tr.appendChild(td); });
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody); ca.appendChild(tbl);
+}
+
+function drawHeatmap(risks, container){
+  const cellSize=52, pad={top:24,right:16,bottom:44,left:56};
+  const W=cellSize*5+pad.left+pad.right, H=cellSize*5+pad.top+pad.bottom;
+
+  // cell fill by score
+  function cellColor(p,i){
+    const s=p*i;
+    if(s>=15) return 'rgba(192,57,43,0.35)';
+    if(s>=10) return 'rgba(231,114,34,0.35)';
+    if(s>=6)  return 'rgba(254,203,0,0.3)';
+    return 'rgba(26,122,74,0.25)';
+  }
+
+  const svg=d3.select(container).append('svg').attr('width',W).attr('height',H);
+  const g=svg.append('g').attr('transform',`translate(${pad.left},${pad.top})`);
+  const tooltip=document.getElementById('tooltip');
+
+  // cells
+  for(let p=1;p<=5;p++){
+    for(let i=1;i<=5;i++){
+      const x=(i-1)*cellSize, y=(5-p)*cellSize;
+      g.append('rect').attr('x',x).attr('y',y).attr('width',cellSize).attr('height',cellSize)
+        .attr('fill',cellColor(p,i)).attr('stroke','rgba(255,255,255,0.15)').attr('stroke-width',1).attr('rx',3);
+      const scoreLabel=p*i;
+      g.append('text').attr('x',x+4).attr('y',y+13).attr('fill','rgba(0,0,0,0.25)').attr('font-family','var(--font-mono)').attr('font-size',9).text(scoreLabel);
+    }
+  }
+
+  // axis labels
+  const impLabels=['','Very Low','Low','Medium','High','Very High'];
+  const probLabels=['','Very Low','Low','Medium','High','Very High'];
+  for(let i=1;i<=5;i++){
+    g.append('text').attr('x',(i-0.5)*cellSize).attr('y',cellSize*5+16).attr('text-anchor','middle')
+      .attr('fill','var(--text-dim)').attr('font-family','var(--font-mono)').attr('font-size',9).text(i);
+  }
+  for(let p=1;p<=5;p++){
+    g.append('text').attr('x',-8).attr('y',(5-p+0.5)*cellSize+4).attr('text-anchor','end')
+      .attr('fill','var(--text-dim)').attr('font-family','var(--font-mono)').attr('font-size',9).text(p);
+  }
+  g.append('text').attr('x',cellSize*5/2).attr('y',cellSize*5+32).attr('text-anchor','middle').attr('fill','var(--text-dim)').attr('font-family','var(--font-mono)').attr('font-size',9).text('IMPACT →');
+  g.append('text').attr('transform',`translate(-40,${cellSize*5/2})rotate(-90)`).attr('text-anchor','middle').attr('fill','var(--text-dim)').attr('font-family','var(--font-mono)').attr('font-size',9).text('PROBABILITY →');
+
+  // plot risks as bubbles
+  const byCell=d3.group(risks, r=>`${r.probability}-${r.impact}`);
+  byCell.forEach((cellRisks,key)=>{
+    const [p,i]=key.split('-').map(Number);
+    const x=(i-1)*cellSize, y=(5-p)*cellSize;
+    const n=cellRisks.length;
+    cellRisks.forEach((r,idx)=>{
+      const ox=n>1?(idx-(n-1)/2)*14:0;
+      const cx=x+cellSize/2+ox, cy=y+cellSize/2;
+      const {text}=riskColor(r.score);
+      const circle=g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',9)
+        .attr('fill',text).attr('opacity',0.9).attr('stroke','#fff').attr('stroke-width',1.5).style('cursor','pointer');
+      g.append('text').attr('x',cx).attr('y',cy+4).attr('text-anchor','middle')
+        .attr('fill','#fff').attr('font-family','var(--font-mono)').attr('font-size',8).attr('pointer-events','none').text(r.id);
+      circle.on('mouseover',function(e){ tooltip.style.display='block'; tooltip.innerHTML=`<b>${r.id}</b>: ${r.risk}<br>P:${r.probability} × I:${r.impact} = <b>${r.score}</b><br>Owner: ${r.owner}`; })
+        .on('mousemove',e=>{ tooltip.style.left=(e.clientX+14)+'px'; tooltip.style.top=(e.clientY-8)+'px'; })
+        .on('mouseout',()=>tooltip.style.display='none');
+    });
+  });
+}
+
+function exportCSVOut(){
+  try{
+    const rows=parseCSV(document.getElementById('csvInput').value);
+    const hdr='id,risk,category,probability,impact,score,owner,mitigation,status';
+    const body=rows.map(r=>[r.id,r.risk,r.category,r.probability,r.impact,r.score,r.owner,r.mitigation,r.status].join(',')).join('\n');
+    const b=new Blob([hdr+'\n'+body],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`risk_register_${Date.now()}.csv`; a.click();
+  }catch(e){ alert(e.message); }
+}
+
+function toggleTheme(){ const d=document.documentElement; const dark=d.getAttribute('data-theme')==='dark'; d.setAttribute('data-theme',dark?'':'dark'); document.getElementById('themeBtn').textContent=dark?'◑':'◐'; }
+window.addEventListener('load',renderAll);
+</script>
+</body>
+</html>
